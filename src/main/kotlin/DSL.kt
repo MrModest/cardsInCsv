@@ -85,34 +85,32 @@ fun AnkiCardsCollector.term(term: String, termMeaningsCollectorHandler: TermMean
     )
 }
 
-fun TermMeaningsCollector.means(clarification: String, explaining: String, meaningExamplesCollectorHandler: MeaningExamplesCollector.() -> Unit) {
+private fun TermMeaningsCollector.meansInternal(clarification: String?, explaining: String, meaningExamplesCollectorHandler: (MeaningExamplesCollector.() -> Unit)?) {
+    val postfix = if (clarification != null) { " ($clarification)" } else { "" }
+    val collector = MeaningExamplesCollector("${this.term}$postfix", tagWrap("i", explaining))
+    if (meaningExamplesCollectorHandler != null) {
+        collector.meaningExamplesCollectorHandler()
+    }
+
     this.addMeaning(
-        MeaningExamplesCollector("${this.term} ($clarification)", tagWrap("i", explaining))
-            .apply(meaningExamplesCollectorHandler)
-            .toCard()
+        collector.toCard()
     )
+}
+
+fun TermMeaningsCollector.means(clarification: String, explaining: String, meaningExamplesCollectorHandler: MeaningExamplesCollector.() -> Unit) {
+    meansInternal(clarification, explaining, meaningExamplesCollectorHandler)
 }
 
 fun TermMeaningsCollector.means(explaining: String, meaningExamplesCollectorHandler: MeaningExamplesCollector.() -> Unit) {
-    this.addMeaning(
-        MeaningExamplesCollector(this.term, tagWrap("i", explaining))
-            .apply(meaningExamplesCollectorHandler)
-            .toCard()
-    )
+    meansInternal(null, explaining, meaningExamplesCollectorHandler)
 }
 
 fun TermMeaningsCollector.means(clarification: String, explaining: String) {
-    this.addMeaning(
-        MeaningExamplesCollector("${this.term} ($clarification)", tagWrap("i", explaining))
-            .toCard()
-    )
+    meansInternal(clarification, explaining, null)
 }
 
 fun TermMeaningsCollector.means(explaining: String) {
-    this.addMeaning(
-        MeaningExamplesCollector(this.term, tagWrap("i", explaining))
-            .toCard()
-    )
+    meansInternal(null, explaining, null)
 }
 
 fun MeaningExamplesCollector.example(sentence: String) {
