@@ -17,6 +17,13 @@ fun main(args: Array<String>) {
         term("toddler") {
             means("a child who has only recently learnt to walk")
         }
+        term("afloat") {
+            meansWithReverse("floating on water") {
+                example("Example for afloat")
+            }
+        }
+        term("mitigate", "to make something less harmful, serious, etc.")
+        termWithReverse("prudent", "sensible and careful when you make judgments and decisions; avoiding unnecessary risks")
     }
 
     val date = LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyy_MM_dd_HH_mm"))

@@ -19,7 +19,15 @@ data class Card(
     val term: String,
     val meaning: String,
     val examples: List<String>
-)
+) {
+    fun toReverse() = Card(meaning, term, examples)
+
+    override fun toString() = StringBuilder().apply {
+        append(term); append('\t')
+        append(tagWrap("i", meaning)); append('\t')
+        append(examples.map { e -> e.boldWord(term).colorWord(term) }.toUlList())
+    }.toString()
+}
 
 class AnkiCardsCollector(
     private val cards: MutableList<Card> = mutableListOf()
@@ -38,13 +46,7 @@ class AnkiCardsCollector(
 
     fun toAnkiImportText() = StringBuilder().apply {
         keys.forEach { append(it); append('\n') }
-
-        cards.forEach {
-            append(it.term); append('\t')
-            append(it.meaning); append('\t')
-            append(it.examples.toUlList())
-            append('\n')
-        }
+        cards.forEach { append(it.toString()); append('\n') }
     }.toString()
 }
 
@@ -85,36 +87,75 @@ fun AnkiCardsCollector.term(term: String, termMeaningsCollectorHandler: TermMean
     )
 }
 
-private fun TermMeaningsCollector.meansInternal(clarification: String?, explaining: String, meaningExamplesCollectorHandler: (MeaningExamplesCollector.() -> Unit)?) {
+fun AnkiCardsCollector.term(term: String, meaning: String) {
+    this.addCard(
+        TermMeaningsCollector(term)
+            .apply{
+                means(meaning)
+            }
+            .toCards()
+    )
+}
+
+fun AnkiCardsCollector.termWithReverse(term: String, meaning: String) {
+    term(term, meaning)
+    term(meaning, term)
+}
+
+private fun TermMeaningsCollector.meansInternal(
+    clarification: String?,
+    explaining: String,
+    meaningExamplesCollectorHandler: (MeaningExamplesCollector.() -> Unit)?,
+    withReverse: Boolean = false
+) {
     val postfix = if (clarification != null) { " ($clarification)" } else { "" }
-    val collector = MeaningExamplesCollector("${this.term}$postfix", tagWrap("i", explaining))
+    val collector = MeaningExamplesCollector("${this.term}$postfix", explaining)
     if (meaningExamplesCollectorHandler != null) {
         collector.meaningExamplesCollectorHandler()
     }
 
-    this.addMeaning(
-        collector.toCard()
-    )
+    val card = collector.toCard()
+
+    this.addMeaning(card)
+    if (withReverse) {
+        this.addMeaning(card.toReverse())
+    }
 }
 
 fun TermMeaningsCollector.means(clarification: String, explaining: String, meaningExamplesCollectorHandler: MeaningExamplesCollector.() -> Unit) {
-    meansInternal(clarification, explaining, meaningExamplesCollectorHandler)
+    meansInternal(clarification, explaining, meaningExamplesCollectorHandler, false)
 }
 
 fun TermMeaningsCollector.means(explaining: String, meaningExamplesCollectorHandler: MeaningExamplesCollector.() -> Unit) {
-    meansInternal(null, explaining, meaningExamplesCollectorHandler)
+    meansInternal(null, explaining, meaningExamplesCollectorHandler, false)
 }
 
 fun TermMeaningsCollector.means(clarification: String, explaining: String) {
-    meansInternal(clarification, explaining, null)
+    meansInternal(clarification, explaining, null, false)
 }
 
 fun TermMeaningsCollector.means(explaining: String) {
-    meansInternal(null, explaining, null)
+    meansInternal(null, explaining, null, false)
+}
+
+fun TermMeaningsCollector.meansWithReverse(clarification: String, explaining: String, meaningExamplesCollectorHandler: MeaningExamplesCollector.() -> Unit) {
+    meansInternal(clarification, explaining, meaningExamplesCollectorHandler, true)
+}
+
+fun TermMeaningsCollector.meansWithReverse(explaining: String, meaningExamplesCollectorHandler: MeaningExamplesCollector.() -> Unit) {
+    meansInternal(null, explaining, meaningExamplesCollectorHandler, true)
+}
+
+fun TermMeaningsCollector.meansWithReverse(clarification: String, explaining: String) {
+    meansInternal(clarification, explaining, null, true)
+}
+
+fun TermMeaningsCollector.meansWithReverse(explaining: String) {
+    meansInternal(null, explaining, null, true)
 }
 
 fun MeaningExamplesCollector.example(sentence: String) {
-    this.addExample(sentence.boldWord(this.term).colorWord(this.term))
+    this.addExample(sentence)
 }
 
 private fun String.boldWord(word: String): String {
